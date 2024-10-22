@@ -3,7 +3,7 @@ import scipy
 from matplotlib import pyplot as plt
 
 #Define size of input vector and scattering matrix
-n = 256
+n = 2048
 
 pi = np.pi
 
@@ -47,21 +47,7 @@ def scatter_sinx_fullresult(adjust_part):
     return abs(scattered)**2
 
 
-# full_output = scatter_sinx_fullresult(result.x)
-# plt.plot(np.arange(0,int(n),1),full_output)
-# plt.show()
-
-
-def new_error_function(adjust_part):
-    slm_matrix = np.concatenate((adjust_part,sinx)) + 1j * imaginary_part
-    scattered = scattering_matrix @ slm_matrix
-
-    desired_func = np.sin(np.arange(0,n,1)*0.1)
-    error = np.mean((abs(scattered) - desired_func)**2)
-    return error
-
-# result = scipy.optimize.minimize(new_error_function, real_part, bounds=bounds, method='L-BFGS-B', options={"maxfun":1e9})
-result = scipy.optimize.differential_evolution(new_error_function, bounds=bounds, disp="True")
-full_output = abs(scattering_matrix @ np.concatenate((result.x,sinx)))**2
+full_output = scatter_sinx_fullresult(result.x)
 plt.plot(np.arange(0,int(n),1),full_output)
 plt.show()
+
