@@ -28,7 +28,7 @@ scattering_matrix = scipy.stats.unitary_group.rvs(n)
 scattered = scattering_matrix @ slm_matrix
 
 # Measure loop
-sinx = np.sin(np.arange(int(n/2), n) * 0.05)/2 + 0.5
+sinx = np.sin(np.arange(0, n//2) * 0.05)/2 + 0.5
 imaginary_part = np.random.uniform(-0, 0, n)
 
 def scatter_sinx(adjust_part):
@@ -36,8 +36,8 @@ def scatter_sinx(adjust_part):
     scattered = scattering_matrix @ slm_matrix
     return -abs(scattered[int(n/2)])**2
 
-bounds = [(0, 1)] * int(n/2)
-result = scipy.optimize.minimize(scatter_sinx, real_part, bounds=bounds, method='L-BFGS-B')
+bounds = [(0, 1)] * (n//2)
+# result = scipy.optimize.minimize(scatter_sinx, real_part, bounds=bounds, method='L-BFGS-B')
 
 
 
@@ -47,7 +47,22 @@ def scatter_sinx_fullresult(adjust_part):
     return abs(scattered)**2
 
 
-full_output = scatter_sinx_fullresult(result.x)
-plt.plot(np.arange(0,int(n),1),full_output)
-plt.show()
+# full_output = scatter_sinx_fullresult(result.x)
+# plt.plot(np.arange(0,int(n),1),full_output)
+# plt.show()
 
+
+def new_error_function(adjust_part):
+    slm_matrix = np.concatenate((adjust_part,sinx)) + 1j * imaginary_part
+    scattered = scattering_matrix @ slm_matrix
+
+    # desired_func = np.concatenate((np.ones(n//16) , np.zeros(n//16)))
+    desired_func = np.sin(np.arange(0,n//8,1) * 0.1) + 1 
+    error = np.mean((abs(scattered[:n//8]) - desired_func)**2)
+    return error
+
+result = scipy.optimize.minimize(new_error_function, real_part, bounds=bounds, method='L-BFGS-B', options={"maxfun":1e4})
+# result = scipy.optimize.differential_evolution(new_error_function, bounds=bounds, disp="True")
+full_output = abs(scattering_matrix @ np.concatenate((result.x,sinx)))**2
+plt.scatter(np.arange(0,int(n),1),full_output)
+plt.show()
