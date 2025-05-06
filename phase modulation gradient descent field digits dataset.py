@@ -24,7 +24,7 @@ X = X.reshape((n_samples, n_pixels)) / 16.0  # normalize to [0, 1]
 X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # ----- Scattering Simulation Setup -----
-n_time = 300
+n_time = 150
 input_freq = 5
 t = np.linspace(-3, 3, n_time)
 time_domain_waveform = np.exp(1j * input_freq * t) * np.exp(-500 * input_freq**2 * t**2)
@@ -56,7 +56,7 @@ def random_unitary_tensor(n, d):
     return tensor
 
 # ----- Dataset Scaling -----
-scale_factor = 5  # Let's replicate each image 3 times (adjust this to your needs)
+scale_factor = 10  # Let's replicate each image 3 times (adjust this to your needs)
 X_train_scaled = np.tile(X_train, (1, scale_factor))  # Replicate each image n times
 X_val_scaled = np.tile(X_val, (1, scale_factor))  # Same for validation data
 

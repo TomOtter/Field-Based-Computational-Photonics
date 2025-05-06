@@ -118,7 +118,7 @@ def forward(modulated_input, v, complex_weights):
 class ScatteringClassifier(nn.Module):
     def __init__(self, n_pixels, scatter_matrix):
         super().__init__()
-        self.v = nn.Parameter(torch.randn(n_pixels))  # learnable spatial profile
+        self.v = nn.Parameter(torch.rand(n_pixels))  # learnable spatial profile
         self.scatter_matrix = scatter_matrix
         self.linear = nn.Linear(10, 10)  # from 10 chunks to 10 classes
         self.waterfall = []
@@ -224,7 +224,7 @@ mod_input = np.outer(ones, time_domain_waveform)#
 sum_outputs = np.zeros(10)
 
 for i in range(1000):
-    v = torch.randn(n_pixels * scale_factor)
+    v = torch.rand(n_pixels * scale_factor)
     sum_outputs += forward(mod_input, v, scatter).numpy()
 
 plt.bar(np.linspace(0,9,10), sum_outputs)

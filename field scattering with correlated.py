@@ -6,28 +6,22 @@ def guassian(length, total_indexes):
     center_index=total_indexes//2
     x = np.linspace(0, length - 1, length)
     mean = x[center_index * length // total_indexes]
-    std_dev = length / 5
+    std_dev = length / 2
     gaussian_array = np.exp(-0.5 * ((x - mean) / std_dev) ** 2)
     gaussian_array /= np.max(gaussian_array) # normalisation condition
     return gaussian_array
 
 # Generate scattering matrix (complex weights)
-def random_unitary_tensor(n, d):
-    #n = no spatial inputs
-    #d = no of time
+def correlated_scatterer(n,d):
     tensor_slices = []
-    p = 0
     add_dispersion = guassian(n,d)
-    while p < d:
-        random_matrix = np.random.rand(n, n) + 1j * np.random.rand(n, n)
-        scatter_matrix, _ = np.linalg.qr(random_matrix)
-        for j in range(n):
-            p += 1
-            if p > d: break
-            tensor_slices.append(scatter_matrix[j] * add_dispersion)
+    freq_slice  = np.random.randn(n) + 1j * np.random.randn(n)
+    for _ in range(0,d):
+        noise =  1 * (np.random.randn(n)) + 1 * (1j * np.random.randn(n))
+        freq_slice += noise + 1 * add_dispersion
+        tensor_slices.append(freq_slice * add_dispersion)
     tensor = np.array(tensor_slices).reshape((d, n))
     return tensor
-
 
 
 
@@ -48,7 +42,7 @@ plt.xlabel("Time, t")
 plt.ylabel(r'$E_{in} (t)$')
 plt.tight_layout()
 
-plt.savefig('Field Scattering plots/Field Input Waveform.png')
+plt.savefig('Field Scattering plots correlated/Field Input Waveform.png')
 #
 plt.close('all') 
 
@@ -70,7 +64,7 @@ plt.xlabel("Frequency, " + r'$\omega$')
 plt.ylabel(r'$F(\omega)$')
 plt.tight_layout()
 
-plt.savefig('Field Scattering plots/Noisy guassian envelope.png')
+plt.savefig('Field Scattering plots correlated/Noisy guassian envelope.png')
 #
 plt.close('all') 
 
@@ -78,7 +72,7 @@ plt.close('all')
 
 
 # Random unitary complex weights
-scatter = random_unitary_tensor(n_space, n_time)
+scatter = correlated_scatterer(n_space, n_time)
 
 
 
@@ -89,7 +83,7 @@ plt.ylabel(r'$\tilde{E_{in}} (\omega)$')
 plt.plot(E_fft[0])
 plt.tight_layout()
 
-plt.savefig('Field Scattering plots/freq input waveform.png')
+plt.savefig('Field Scattering plots correlated/freq input waveform.png')
 #
 plt.close('all') 
 
@@ -101,7 +95,7 @@ plt.ylabel(r'$\tilde{E_{in}} (\omega)$')
 plt.plot(E_fft[0])
 plt.tight_layout()
 
-plt.savefig('Field Scattering plots/Freq input parsed by envelope.png')
+plt.savefig('Field Scattering plots correlated/Freq input parsed by envelope.png')
 #
 plt.close('all') 
 
@@ -117,7 +111,7 @@ plt.xlabel("Frequency, " + r'$\omega$')
 plt.ylabel(r'$\tilde{E_{out}} (\omega)$')
 plt.tight_layout()
 
-plt.savefig('Field Scattering plots/freq scattered output.png')
+plt.savefig('Field Scattering plots correlated/freq scattered output.png')
 #
 plt.close('all') 
 
@@ -144,7 +138,7 @@ plt.xlabel("Time, t")
 plt.ylabel(r'$| Re(E_{out})(t)|$')
 plt.tight_layout()
 
-plt.savefig('Field Scattering plots/Abs val of field output and real part.png')
+plt.savefig('Field Scattering plots correlated/Abs val of field output and real part.png')
 #
 plt.close('all') 
 
@@ -170,7 +164,7 @@ ax.set_title('Output split into bins')
 ax.legend()
 
 plt.tight_layout()
-plt.savefig('Field Scattering plots/Output split into bins.png')
+plt.savefig('Field Scattering plots correlated/Output split into bins.png')
 plt.close('all') 
 
 
@@ -187,7 +181,7 @@ plt.ylabel("Sum of bin")
 plt.title("Sum of the output bins")
 plt.tight_layout()
 
-plt.savefig('Field Scattering plots/Sum of output bins.png')
+plt.savefig('Field Scattering plots correlated/Sum of output bins.png')
 plt.close('all') 
 
 
@@ -199,7 +193,7 @@ plt.ylabel("Frequency, w")
 plt.tight_layout()
 #
 
-plt.savefig('Field Scattering plots/Visualisation of scattering matrix real part.png')
+plt.savefig('Field Scattering plots correlated/Visualisation of scattering matrix real part.png')
 plt.close('all') 
 
 E_fft = fft.fft(modulated_input)
@@ -211,7 +205,7 @@ plt.subplot(1,2,2)
 plt.imshow(E_fft.real)
 plt.tight_layout()
 
-plt.savefig('Field Scattering plots/input waveform with envelope vs without.png')
+plt.savefig('Field Scattering plots correlated/input waveform with envelope vs without.png')
 plt.close('all') 
 
 
@@ -256,14 +250,14 @@ plt.ylabel("Sum of bins")
 plt.title("Sum of bin outputs with different random SLMs")
 plt.tight_layout()
 
-plt.savefig('Field Scattering plots/sum of 200000 outputs.png')
+plt.savefig('Field Scattering plots correlated/sum of 200000 outputs.png')
 plt.close('all') 
 
 
 waterfall = []
 slm = np.ones(n_space)
 for i in range(n_space):
-    scatter = random_unitary_tensor(n_space, n_time)
+    scatter = correlated_scatterer(n_space, n_time)
     modulated_input = np.outer(slm, time_domain_waveform)
     E_fft = fft.fft(modulated_input)
     E_fft = E_fft * noisy_gaussian_envelope
@@ -284,7 +278,7 @@ plt.xlabel("Time, t")
 plt.ylabel("Spatial position")
 plt.title("Scattered output heatmap for sharp pulse")
 plt.tight_layout()
-('Field Scattering plots/sharp pulse scattered heatmap.png')
+('Field Scattering plots correlated/sharp pulse scattered heatmap.png')
 #
 plt.close('all') 
 
@@ -297,7 +291,7 @@ waterfall = []
 
 slm = np.ones(n_space)
 for i in range(n_space):
-    scatter = random_unitary_tensor(n_space, n_time)
+    scatter = correlated_scatterer(n_space, n_time)
     modulated_input = np.outer(slm, time_domain_waveform)
     E_fft = fft.fft(modulated_input)
     E_fft = E_fft * noisy_gaussian_envelope
@@ -318,7 +312,7 @@ plt.ylabel("Spatial position")
 plt.title("Scattered output heatmap for broad pulse")
 plt.tight_layout()
 
-plt.savefig('Field Scattering plots/board pulse scattered heatmap.png')
+plt.savefig('Field Scattering plots correlated/board pulse scattered heatmap.png')
 plt.close('all') 
 
 
@@ -339,7 +333,7 @@ plt.ylabel("Re(E)")
 plt.title("E field output for SLM of all zeros - No input")
 plt.tight_layout()
 
-plt.savefig('Field Scattering plots/SLM all zeros.png')
+plt.savefig('Field Scattering plots correlated/SLM all zeros.png')
 plt.close('all') 
 
 
