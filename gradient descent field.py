@@ -75,7 +75,9 @@ for step in range(100):
 
 # Final output visualization
 plt.plot(output.detach().numpy())
-plt.title("Final Chunk Sums After Training")
+plt.title("Sum of output chunks after training")
+plt.xlabel("Chunk number")
+plt.ylabel("Sum")
 plt.show()
 
 

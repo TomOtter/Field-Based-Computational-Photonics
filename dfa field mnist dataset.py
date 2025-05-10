@@ -5,25 +5,38 @@ from sklearn.datasets import load_digits
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import numpy as np
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, random_split
 
 
 
+def guassian(length, total_indexes):
+    center_index=total_indexes//2
+    x = np.linspace(0, length - 1, length)
+    mean = x[center_index * length // total_indexes]
+    std_dev = length / 5
+    gaussian_array = np.exp(-0.5 * ((x - mean) / std_dev) ** 2)
+    gaussian_array /= np.max(gaussian_array) # normalisation condition
+    return gaussian_array
+
 # Generate scattering matrix (complex weights)
 def random_unitary_tensor(n, d):
+    #n = no spatial inputs
+    #d = no of time
     tensor_slices = []
     p = 0
+    add_dispersion = guassian(n,d)
     while p < d:
         random_matrix = np.random.rand(n, n) + 1j * np.random.rand(n, n)
         scatter_matrix, _ = np.linalg.qr(random_matrix)
         for j in range(n):
             p += 1
             if p > d: break
-            tensor_slices.append(scatter_matrix[j])
-    return np.array(tensor_slices).reshape((n, d))
+            tensor_slices.append(scatter_matrix[j] * add_dispersion)
+    tensor = np.array(tensor_slices).reshape((d, n))
+    return tensor
 
 # ----- Dataset Scaling -----
 # Hyperparameters
@@ -41,7 +54,7 @@ input_freq = 5
 time_domain_waveform = np.exp(1j * input_freq * t) * np.exp(-500 * input_freq**2 * t**2)
 
 # Generate new scattering matrix
-scatter_np = random_unitary_tensor(n_time,n_pixels_new)
+scatter_np = random_unitary_tensor(n_pixels_new, n_time)
 scatter = torch.tensor(scatter_np, dtype=torch.cfloat)
 
 
@@ -124,7 +137,7 @@ loss_fn = nn.CrossEntropyLoss()
 n_epochs = 10
 batch_size = 32
 
-
+train_accuracies = []
 
 for epoch in range(n_epochs):
     model.train()
@@ -150,6 +163,8 @@ for epoch in range(n_epochs):
             preds = model(val_x_scaled)
             correct += (preds.argmax(1) == val_y).sum().item()
             total += val_y.size(0)
+        train_accuracies.append(correct/total)
+        model.v.clamp_(0.0)
 
     print(f"Epoch {epoch+1}: Val Accuracy = {correct / total:.4f}")
 
@@ -175,6 +190,11 @@ with torch.no_grad():
 y_pred = torch.cat(all_preds).cpu().numpy()
 y_true = y_test_tensor.cpu().numpy()
 
+accuracy = accuracy_score(y_true, y_pred)
+print(f"Test Accuracy: {accuracy:.2%}")  # e.g. 94.50%
+
+
+
 # ----- Confusion Matrix -----
 cm = confusion_matrix(y_true, y_pred, normalize='true')
 disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[str(i) for i in range(10)])
@@ -184,6 +204,14 @@ fig, ax = plt.subplots(figsize=(8, 8))
 disp.plot(ax=ax, cmap="Blues", colorbar=True)
 plt.title("Confusion Matrix")
 plt.show()
+
+plt.plot(range(1, n_epochs + 1), train_accuracies, marker='o')
+plt.xlabel('Epoch')
+plt.ylabel('Training Accuracy')
+plt.title('Training Accuracy vs Epoch')
+plt.grid(True)
+plt.show()
+
 
 
 # ----- Verify that the distribution of bins for random SLM arrangements is even -----------

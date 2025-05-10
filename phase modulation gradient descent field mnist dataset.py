@@ -93,9 +93,10 @@ test_loader  = DataLoader(test_dataset, batch_size=batch_size)
 
 
 # ----- Forward Simulation -----
-def forward(modulated_input, v, complex_weights):
+def forward(modulated_input, v, phases, complex_weights):
     E_in = torch.tensor(modulated_input, dtype=torch.cfloat)  # (n_pixels, n_time)
     E_scaled = E_in * v.view(-1, 1)  # element-wise amplitude modulation
+    E_scaled = E_scaled * (torch.exp(1j * phases)).view(-1,1) #element wise phase modulation
     E_fft = torch.fft.fft(E_scaled, dim=1) * noisy_gaussian_envelope
     s = torch.einsum('ij,ij->j', E_fft, complex_weights)
     s_ifft = torch.fft.ifft(s)
@@ -113,6 +114,7 @@ class ScatteringClassifier(nn.Module):
     def __init__(self, n_pixels, scatter_matrix):
         super().__init__()
         self.v = nn.Parameter(torch.rand(n_pixels))  # learnable spatial profile
+        self.phase = nn.Parameter(torch.rand(n_pixels) * (2 * torch.pi) )
         self.scatter_matrix = scatter_matrix
         self.linear = nn.Linear(10, 10)  # from 10 chunks to 10 classes
         self.waterfall = []
@@ -121,7 +123,7 @@ class ScatteringClassifier(nn.Module):
         batch_outputs = []
         for x in x_batch:
             modulated_input = np.outer(x, time_domain_waveform)
-            chunk_output = forward(modulated_input, self.v, self.scatter_matrix)
+            chunk_output = forward(modulated_input, self.v, self.phase, self.scatter_matrix)
             batch_outputs.append(chunk_output)
         batch_tensor = torch.stack(batch_outputs)  # (batch_size, 10)
         return self.linear(batch_tensor)
@@ -177,6 +179,7 @@ for epoch in range(n_epochs):
             correct += (preds.argmax(1) == val_y).sum().item()
             total += val_y.size(0)
         train_accuracies.append(correct/total)
+        model.v.clamp_(0.0)
 
     print(f"Epoch {epoch+1}: Val Accuracy = {correct / total:.4f}")
 

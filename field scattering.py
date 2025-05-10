@@ -40,7 +40,7 @@ n_space = 200
 #1 Define input waveform
 input_freq = 5
 t = np.linspace(-3, 3, n_time)
-time_domain_waveform = np.exp(1j * input_freq * t) * np.exp(-50 * input_freq**2 * t**2)
+time_domain_waveform = np.exp(1j * input_freq * t) * np.exp(-500 * input_freq**2 * t**2)
 
 plt.plot(time_domain_waveform)
 plt.title("Field Input Waveform " + r'$E_{in} (t)$')
@@ -125,6 +125,18 @@ plt.close('all')
 s_ifft = fft.ifft(s)
 # Step 4: real part, chunk, abs, sum
 real = s_ifft.real
+
+plt.plot(real)
+plt.title("Output Waveform - Real part of " + r'$E_{out} (t)$')
+plt.xlabel("Time, t")
+plt.ylabel(r'$E_{out} (t)$')
+plt.tight_layout()
+
+plt.savefig('Field Scattering plots/real part of output.png')
+#
+plt.close('all') 
+
+
 
 plt.subplot(2,1,1)
 plt.plot(real)
@@ -284,7 +296,7 @@ plt.xlabel("Time, t")
 plt.ylabel("Spatial position")
 plt.title("Scattered output heatmap for sharp pulse")
 plt.tight_layout()
-('Field Scattering plots/sharp pulse scattered heatmap.png')
+plt.savefig('Field Scattering plots/sharp pulse scattered heatmap.png')
 #
 plt.close('all') 
 

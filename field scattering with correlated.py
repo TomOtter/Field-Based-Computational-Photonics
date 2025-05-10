@@ -13,13 +13,18 @@ def guassian(length, total_indexes):
 
 # Generate scattering matrix (complex weights)
 def correlated_scatterer(n,d):
+    #n = no spatial inputs
+    #d = no of time
     tensor_slices = []
+    p = 0
     add_dispersion = guassian(n,d)
-    freq_slice  = np.random.randn(n) + 1j * np.random.randn(n)
-    for _ in range(0,d):
-        noise =  1 * (np.random.randn(n)) + 1 * (1j * np.random.randn(n))
-        freq_slice += noise + 1 * add_dispersion
-        tensor_slices.append(freq_slice * add_dispersion)
+    while p < d:
+        random_matrix = np.random.rand(n, n) + 1j * np.random.rand(n, n)
+        scatter_matrix, _ = np.linalg.qr(random_matrix)
+        for j in range(n):
+            p += 1
+            if p > d: break
+            tensor_slices.append(scatter_matrix[j] * add_dispersion)
     tensor = np.array(tensor_slices).reshape((d, n))
     return tensor
 
@@ -84,18 +89,6 @@ plt.plot(E_fft[0])
 plt.tight_layout()
 
 plt.savefig('Field Scattering plots correlated/freq input waveform.png')
-#
-plt.close('all') 
-
-
-E_fft = E_fft * noisy_gaussian_envelope
-plt.title("Frequency Input Waveform parsed by Gaussian Envelope " + r'$\tilde{E_{in}} (\omega)$')
-plt.xlabel("Frequencies, w")
-plt.ylabel(r'$\tilde{E_{in}} (\omega)$')
-plt.plot(E_fft[0])
-plt.tight_layout()
-
-plt.savefig('Field Scattering plots correlated/Freq input parsed by envelope.png')
 #
 plt.close('all') 
 

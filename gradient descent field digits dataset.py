@@ -5,7 +5,7 @@ from sklearn.datasets import load_digits
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import numpy as np
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
 
 
@@ -116,6 +116,8 @@ y_val_tensor = torch.tensor(y_val, dtype=torch.long)
 n_epochs = 20
 batch_size = 32
 
+train_accuracies = []
+
 for epoch in range(n_epochs):
     model.train()
     permutation = torch.randperm(X_train_tensor.size(0))
@@ -141,6 +143,7 @@ for epoch in range(n_epochs):
     with torch.no_grad():
         val_preds = model(X_val_tensor)
         val_accuracy = (val_preds.argmax(dim=1) == y_val_tensor).float().mean().item()
+        train_accuracies.append(val_accuracy)
     print(f"Epoch {epoch+1} | Loss: {loss.item():.4f} | Val Accuracy: {val_accuracy:.4f}")
 
     model.add_water()
@@ -163,6 +166,10 @@ with torch.no_grad():
 y_pred = torch.cat(all_preds).cpu().numpy()
 y_true = y_test_tensor.cpu().numpy()
 
+accuracy = accuracy_score(y_true, y_pred)
+print(f"Test Accuracy: {accuracy:.2%}")  # e.g. 94.50%
+
+
 # ----- Confusion Matrix -----
 cm = confusion_matrix(y_true, y_pred, normalize='true')
 disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[str(i) for i in range(10)])
@@ -172,6 +179,21 @@ fig, ax = plt.subplots(figsize=(8, 8))
 disp.plot(ax=ax, cmap="Blues", colorbar=True)
 plt.title("Confusion Matrix")
 plt.show()
+
+
+plt.plot(range(1, n_epochs + 1), train_accuracies, marker='o')
+plt.xlabel('Epoch')
+plt.ylabel('Training Accuracy')
+plt.title('Training Accuracy vs Epoch')
+plt.grid(True)
+plt.show()
+
+
+
+
+
+
+
 
 
 # ----- Verify that the distribution of bins for random SLM arrangements is even -----------
@@ -185,6 +207,10 @@ for i in range(1000):
 
 plt.bar(np.linspace(0,9,10), sum_outputs)
 plt.show()
+
+
+
+
 
 
 # ----- Verify that the distribution of bins for random SLM arrangements is even -----------
