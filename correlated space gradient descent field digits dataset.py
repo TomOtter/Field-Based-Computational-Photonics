@@ -29,6 +29,15 @@ input_freq = 5
 t = np.linspace(-3, 3, n_time)
 time_domain_waveform = np.exp(1j * input_freq * t) * np.exp(-500 * input_freq**2 * t**2)
 
+def guassian(length, total_indexes):
+    center_index=total_indexes//2
+    x = np.linspace(0, length - 1, length)
+    mean = x[center_index * length // total_indexes]
+    std_dev = length / 5
+    gaussian_array = np.exp(-0.5 * ((x - mean) / std_dev) ** 2)
+    gaussian_array /= np.max(gaussian_array) # normalisation condition
+    return gaussian_array
+
 # Generate scattering matrix (complex weights)
 def random_unitary_tensor(n, d):
     #n = no spatial inputs
