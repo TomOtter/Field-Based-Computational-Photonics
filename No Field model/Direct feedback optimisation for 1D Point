@@ -1,0 +1,61 @@
+import numpy as np 
+import scipy
+from matplotlib import pyplot as plt
+
+#Define size of input vector and scattering matrix
+n = 256
+
+pi = np.pi
+
+
+# Scatterer
+random_matrix = np.random.rand(n, n) + 1j * np.random.rand(n, n)
+scattering_matrix, _ = np.linalg.qr(random_matrix)  # QR decomposition to make it unitary
+
+
+# Measure loop
+
+target_function = np.zeros(n)
+target_function[n//2] = 1000
+
+
+def error(slm_input):
+    slm_matrix = slm_input
+    scattered = scattering_matrix @ slm_matrix
+
+    output_error = target_function - abs(scattered)**2
+    return output_error
+
+def error_val(slm_input):
+    slm_matrix = slm_input
+    scattered = scattering_matrix @ slm_matrix
+    return -abs(scattered[n//2])**2
+
+
+
+def direct_feedback():
+
+    random_matrix = np.random.rand(n, n) #+ 1j * np.random.rand(n, n//2)
+    random_feedback, _ = np.linalg.qr(random_matrix)  # QR decomposition to make it unitary 
+    gradient = 0 
+    real_part = np.random.uniform(0, 1, n)
+    rate = 1e-5
+
+    for i in range(100000):
+        output_error = error(real_part)
+
+        delta = (random_feedback @ output_error) * rate
+        real_part += delta.real
+        real_part = np.clip(real_part,0,1)
+        if (i%500) == 0: print(error_val(real_part))
+        
+    return real_part
+
+optimised_input = direct_feedback()
+full_output = abs(scattering_matrix @ optimised_input)**2
+plt.scatter(np.arange(0,int(n),1),full_output)
+plt.show()
+
+print(optimised_input)
+print(full_output[n//2])
+
