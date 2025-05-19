@@ -49,7 +49,7 @@ def forward(modulated_input, v, complex_weights):
     s_ifft = torch.fft.ifft(s)
     real = s_ifft.real
     chunks = torch.chunk(real, 10)
-    chunk_sums = [torch.max(torch.sqrt(chunk**2 + 1e-20)) for chunk in chunks]
+    chunk_sums = [torch.max(chunk) for chunk in chunks]
     return torch.stack(chunk_sums)
 
 # ----- Classifier -----
@@ -143,7 +143,7 @@ disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[str(i) for i 
 # ----- Plot -----
 fig, ax = plt.subplots(figsize=(8, 8))
 disp.plot(ax=ax, cmap="Blues", colorbar=True)
-plt.title(str("Confusion Matrix " + str(accuracy) + "%" + "accurate" ))
+plt.title(f"Confusion Matrix ({accuracy:.2%} accurate)")
 plt.savefig("Peak Position Confusion matrix")
 plt.clf()
 

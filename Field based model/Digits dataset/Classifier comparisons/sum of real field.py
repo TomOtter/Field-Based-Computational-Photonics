@@ -144,7 +144,7 @@ disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[str(i) for i 
 # ----- Plot -----
 fig, ax = plt.subplots(figsize=(8, 8))
 disp.plot(ax=ax, cmap="Blues", colorbar=True)
-plt.title(str("Confusion Matrix " + str(accuracy) + "%" + "accurate" ))
+plt.title(f"Confusion Matrix ({accuracy:.2%} accurate)")
 plt.savefig("Sum of Real Field Confusion matrix")
 plt.clf()
 

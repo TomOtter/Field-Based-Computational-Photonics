@@ -31,7 +31,7 @@ batch_size = 32
 
 n_pixels = 28 * 28
 n_pixels_new = n_pixels * scale_factor  # after replication
-n_time = 200
+n_time = 150
 
 # Time waveform input
 # ----- Scattering Simulation Setup -----
@@ -73,7 +73,7 @@ test_loader  = DataLoader(test_dataset, batch_size=batch_size)
 
 
 # ----- Forward Simulation -----
-def forward(modulated_input, v, phases, complex_weights):
+def forward(modulated_input, v, phases, complex_weights, correction):
     E_in = torch.tensor(modulated_input, dtype=torch.cfloat)  # (n_pixels, n_time)
     E_scaled = E_in * v.view(-1, 1)  # element-wise amplitude modulation
     E_scaled = E_scaled * (torch.exp(1j * phases)).view(-1,1) #element wise phase modulation
@@ -81,11 +81,12 @@ def forward(modulated_input, v, phases, complex_weights):
     s = torch.einsum('ij,ij->j', E_fft, complex_weights)
     s_ifft = torch.fft.ifft(s)
     real = s_ifft.real
+    real = real / correction
     chunks = torch.chunk(real, 10)
     #Option 1: take the sum of each bin
-    #chunk_sums = [torch.sum(torch.sqrt(chunk**2 + 1e-8)) for chunk in chunks] 
+    chunk_sums = [torch.sum(torch.sqrt(chunk**2 + 1e-8)) for chunk in chunks] 
     #Option 2: take the max of each bin
-    chunk_sums = [torch.max(torch.sqrt(chunk**2 + 1e-20)) for chunk in chunks] 
+    #chunk_sums = [torch.max(torch.sqrt(chunk**2 + 1e-20)) for chunk in chunks] 
 
     return torch.stack(chunk_sums)
 
@@ -97,42 +98,47 @@ class ScatteringClassifier(nn.Module):
         self.phase = nn.Parameter(torch.rand(n_pixels) * (2 * torch.pi) )
         self.scatter_matrix = scatter_matrix
         self.linear = nn.Linear(10, 10)  # from 10 chunks to 10 classes
-        self.waterfall = []
+
+        ones = np.ones(n_pixels)
+        mod_input = np.outer(ones, time_domain_waveform)
+        sum_outputs = np.zeros(n_time)
+        sum_bins = np.zeros(10)
+
+        for i in range(10000):
+            v = torch.rand(n_pixels)
+
+            E_in = torch.tensor(mod_input, dtype=torch.cfloat)  # (n_pixels, n_time)
+            E_scaled = E_in * v.view(-1, 1)  # element-wise amplitude modulation
+            E_fft = torch.fft.fft(E_scaled, dim=1)
+            s = torch.einsum('ij,ij->j', E_fft, self.scatter_matrix)
+            s_ifft = torch.fft.ifft(s)
+            real = s_ifft.real
+            chunks = torch.chunk(real, 10)
+            chunk_sums = [torch.sum(torch.sqrt(chunk**2 + 1e-20)) for chunk in chunks]
+            sum_outputs += abs(real.numpy())
+            sum_bins += chunk_sums
+
+
+        self.correction =  torch.from_numpy(sum_outputs / max(sum_outputs)).to(torch.cfloat).real
 
     def forward(self, x_batch):  # x_batch shape: (batch_size, n_pixels)
         batch_outputs = []
         for x in x_batch:
             modulated_input = np.outer(x, time_domain_waveform)
-            chunk_output = forward(modulated_input, self.v, self.phase, self.scatter_matrix)
+            chunk_output = forward(modulated_input, self.v, self.phase, self.scatter_matrix, self.correction)
             batch_outputs.append(chunk_output)
         batch_tensor = torch.stack(batch_outputs)  # (batch_size, 10)
         return self.linear(batch_tensor)
-    
-    # def add_water(self):
-    #     x = X_train_scaled[0]
-    #     modulated_input = np.outer(x, time_domain_waveform)
-    #     output = forward(modulated_input, self.v, self.scatter_matrix)
-    #     self.waterfall.append(output.detach())
-
-    # def plot_waterfall(self):
-    #     image = np.array(self.waterfall)
-    #     image = image.reshape((image.size//10, 10))
-    #     plt.imshow(image)
-    #     plt.show()
-    #     image = np.array(X_train[0])
-    #     image = image.reshape((8,8))
-    #     plt.imshow(image)
-    #     plt.show()
 
 
 # ----- Training Setup -----
 model = ScatteringClassifier(n_pixels_new, scatter)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.05)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.02, weight_decay= 0.000001)
 loss_fn = nn.CrossEntropyLoss()
 
 
 # ----- Training Loop with Scaled Data -----
-n_epochs = 10
+n_epochs = 20
 batch_size = 32
 
 train_accuracies = []
@@ -163,8 +169,7 @@ for epoch in range(n_epochs):
 
     print(f"Epoch {epoch+1}: Val Accuracy = {correct / total:.4f}")
 
-#    model.add_water()
-#model.plot_waterfall()
+
 
 
 # ----- Prepare Test Data (scaled like train/val) -----

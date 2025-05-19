@@ -46,7 +46,7 @@ def random_unitary_tensor(n, d):
     return tensor
 
 # ----- Dataset Scaling -----
-scale_factor = 5  # Let's replicate each image 3 times (adjust this to your needs)
+scale_factor = 2  # Let's replicate each image n times (adjust this to your needs)
 X_train_scaled = np.tile(X_train, (1, scale_factor))  # Replicate each image n times
 X_val_scaled = np.tile(X_val, (1, scale_factor))  # Same for validation data
 
@@ -86,27 +86,12 @@ class ScatteringClassifier(nn.Module):
             batch_outputs.append(chunk_output)
         batch_tensor = torch.stack(batch_outputs)  # (batch_size, 10)
         return self.linear(batch_tensor)
-    
-    def add_water(self):
-        x = X_train_scaled[0]
-        modulated_input = np.outer(x, time_domain_waveform)
-        output = forward(modulated_input, self.v, self.scatter_matrix)
-        self.waterfall.append(output.detach())
-
-    def plot_waterfall(self):
-        image = np.array(self.waterfall)
-        image = image.reshape((image.size//10, 10))
-        plt.imshow(image)
-        plt.show()
-        image = np.array(X_train[0])
-        image = image.reshape((8,8))
-        plt.imshow(image)
-        plt.show()
 
 
+lr = 0.1 #lr = 0.1 for most results in report
 # ----- Training Setup -----
 model = ScatteringClassifier(n_pixels=n_pixels * scale_factor, scatter_matrix=scatter)
-optimizer = optim.Adam(model.parameters(), lr=0.1)
+optimizer = optim.Adam(model.parameters(), lr=lr) 
 loss_fn = nn.CrossEntropyLoss()
 
 # ----- Convert Scaled Data to PyTorch tensors -----
@@ -116,7 +101,7 @@ X_val_tensor = torch.tensor(X_val_scaled, dtype=torch.float32)
 y_val_tensor = torch.tensor(y_val, dtype=torch.long)
 
 # ----- Training Loop with Scaled Data -----
-n_epochs = 20
+n_epochs = 40
 batch_size = 32
 
 train_accuracies = []
@@ -149,10 +134,6 @@ for epoch in range(n_epochs):
         train_accuracies.append(val_accuracy)
     print(f"Epoch {epoch+1} | Loss: {loss.item():.4f} | Val Accuracy: {val_accuracy:.4f}")
 
-    model.add_water()
-model.plot_waterfall()
-
-print(model.v)
 
 # ----- Prepare Test Data (scaled like train/val) -----
 X_test_tensor = torch.tensor(X_val_scaled, dtype=torch.float32)
@@ -180,8 +161,9 @@ disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[str(i) for i 
 # ----- Plot -----
 fig, ax = plt.subplots(figsize=(8, 8))
 disp.plot(ax=ax, cmap="Blues", colorbar=True)
-plt.title("Confusion Matrix")
-plt.show()
+plt.title(f"Confusion Matrix ({accuracy:.2%} accurate)")
+plt.savefig(str("Scale factor = " + str(scale_factor) + " ntime = " + str(n_time) +  " Confusion matrix"))
+plt.clf()
 
 
 plt.plot(range(1, n_epochs + 1), train_accuracies, marker='o')
@@ -189,30 +171,8 @@ plt.xlabel('Epoch')
 plt.ylabel('Training Accuracy')
 plt.title('Training Accuracy vs Epoch')
 plt.grid(True)
-plt.show()
-
-
-
-
-
-
-
-
-
-# ----- Verify that the distribution of bins for random SLM arrangements is even -----------
-ones = np.ones(n_pixels * scale_factor)
-mod_input = np.outer(ones, time_domain_waveform)#
-sum_outputs = np.zeros(10)
-
-for i in range(1000):
-    v = torch.rand(n_pixels * scale_factor)
-    sum_outputs += forward(mod_input, v, scatter).numpy()
-
-plt.bar(np.linspace(0,9,10), sum_outputs)
-plt.show()
-
-
-
+plt.savefig(str("Scale factor = " + str(scale_factor) + " ntime = " + str(n_time) + " Training vs Epoch"))
+plt.clf()
 
 
 

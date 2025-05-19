@@ -3,7 +3,7 @@ import scipy
 from matplotlib import pyplot as plt
 
 #Define size of input vector and scattering matrix
-n = 1024
+n = 256
 
 pi = np.pi
 
@@ -31,6 +31,15 @@ scattered = scattering_matrix @ slm_matrix
 sinx = np.sin(np.arange(0, n//2) * 0.05)/2 + 0.5
 imaginary_part = np.random.uniform(-0, 0, n)
 
+
+#Test scatter:
+# test_slm = np.ones(n)
+# output = abs(scattering_matrix @ test_slm)**2
+# plt.plot(output)
+# plt.xlabel(r'Position (Arbitary Distance)')
+# plt.ylabel(r'Intensity output (Arbitary $W/m^2$)')
+# plt.show()
+
 def scatter_sinx(adjust_part):
     slm_matrix = np.concatenate((adjust_part,sinx)) + 1j * imaginary_part
     scattered = scattering_matrix @ slm_matrix
@@ -51,4 +60,6 @@ def scatter_sinx_fullresult(adjust_part):
 
 full_output = scatter_sinx_fullresult(result.x)
 plt.plot(np.arange(0,int(n),1),full_output)
+plt.xlabel(r'Position (Arbitary Distance)')
+plt.ylabel(r'Intensity Output (Arbitary $W/m^2$)')
 plt.show()
